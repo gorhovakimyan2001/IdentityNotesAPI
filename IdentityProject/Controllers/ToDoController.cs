@@ -20,15 +20,20 @@ namespace IdentityProject.Controllers
         [HttpGet("ToDoList")]
         public IResult GetUserToDoList()
         {
-            var user = User.Identity.Name;
-
-            if (user == null)
+            if (User.Identity is { IsAuthenticated: true })
             {
-                return Results.NotFound();
+                var user = User.Identity.Name;
+
+                if (user == null)
+                {
+                    return Results.NotFound();
+                }
+
+                var response = _service.GetToDoList(user);
+                return Results.Ok(response);
             }
 
-            var response = _service.GetToDoList(user);
-            return Results.Ok(response);
+            return Results.NotFound();
         }
 
         [HttpGet("NotesByTitle")]
@@ -38,15 +43,21 @@ namespace IdentityProject.Controllers
             {
                 return Results.Problem();
             }
-            var userName = User.Identity.Name;
 
-            if (userName == null)
+            if (User.Identity is { IsAuthenticated: true })
             {
-                return Results.NotFound();
+                var userName = User.Identity.Name;
+
+                if (userName == null)
+                {
+                    return Results.NotFound();
+                }
+
+                var response = _service.GetNotesByTitle(title, userName);
+                return Results.Ok(response);
             }
 
-            var response = _service.GetNotesByTitle(title, userName);
-            return Results.Ok(response);
+            return Results.NotFound();
         }
 
         [HttpGet("Note/{Id:int}")]
@@ -86,23 +97,28 @@ namespace IdentityProject.Controllers
         [HttpPost("InsertNote")]
         public IResult InsertNote(ToDoInsertDto newNote)
         {
-            var userName = User.Identity.Name;
-
-            if (userName == null)
+            if (User.Identity is { IsAuthenticated: true })
             {
-               return Results.NotFound();
+                var userName = User.Identity.Name;
+
+                if (userName == null)
+                {
+                    return Results.NotFound();
+                }
+
+                ToDoServiceInsertDto note = new ToDoServiceInsertDto
+                {
+                    UserName = userName,
+                    Title = newNote.Title,
+                    DeadlineDateTime = newNote.DeadlineDateTime,
+                    Description = newNote.Description,
+                };
+
+                var response = _service.InsertNote(note);
+                return Results.Ok(response);
             }
 
-            ToDoServiceInsertDto note = new ToDoServiceInsertDto
-            {
-                UserName = userName,
-                Title = newNote.Title,
-                DeadlineDateTime = newNote.DeadlineDateTime,
-                Description = newNote.Description,
-            };
-
-            var response = _service.InsertNote(note);
-            return Results.Ok(response);
+            return Results.Problem("Failed to insert new note!!!");
         }
     }
 }

@@ -1,12 +1,7 @@
-﻿using IdentityDb.Data;
-using IdentityServiceProject.Dtos;
+﻿using IdentityServiceProject.Dtos;
 using IdentityServiceProject.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 namespace IdentityServiceProject.Services
 {
     public class AuthenticationService
