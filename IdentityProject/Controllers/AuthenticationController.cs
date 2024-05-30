@@ -1,5 +1,5 @@
 ﻿using IdentityServiceProject.Dtos;
-using IdentityServiceProject.Services;
+using IdentityServiceProject.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,40 +9,52 @@ namespace IdentityProject.Controllers
     [Route("[controller]")]
     public class AuthenticationController: ControllerBase
     {
-        private readonly AuthenticationService _authenticationService;
+        private readonly IAuthenticationService _authenticationService;
 
-        public AuthenticationController(AuthenticationService authenticationService)
+        public AuthenticationController(IAuthenticationService authenticationService)
         {
             _authenticationService = authenticationService;
         }
 
         [AllowAnonymous]
         [HttpPost("Registration")]
-        public IResult Registration(UserRegisterDto newUser)
+        public async Task<IActionResult> Registration(UserRegisterDto newUser)
         {
-            var response = _authenticationService.Registration(newUser);
-            var result = response.Result;
-            return Results.Ok(result);
+            var response = await _authenticationService.Registration(newUser);
+
+            if (response == null || !response.Succeeded)
+            {
+                return StatusCode(StatusCodes.Status400BadRequest);
+            }
+
+            return StatusCode(StatusCodes.Status200OK, response);
         }
 
         [AllowAnonymous]
         [HttpPost("LogIn")]
-        public IResult LogIn(UserLogInDto user)
+        public async Task<IActionResult> LogIn(UserLogInDto user)
         {
-            var response = _authenticationService.LogIn(user);
+            var response = await _authenticationService.LogIn(user);
 
-            if (response.Result.result.Succeeded)
+            if (response.result.Succeeded)
             {
-                return Results.Ok(response.Result.token);
+                return StatusCode(StatusCodes.Status200OK, response.token);
             }
-            return Results.NotFound(user);
+
+            return StatusCode(StatusCodes.Status400BadRequest);
         }
 
         [HttpPost("RefreshToken")]
-        public IResult RefreshToken(string userId)
+        public async Task<IActionResult> RefreshToken(string userId)
         {
-            var response = _authenticationService.RefeshToken(userId);
-            return Results.Ok(response.Result);
+            var response = await _authenticationService.RefeshToken(userId);
+
+            if (string.IsNullOrEmpty(response))
+            {
+                return StatusCode(StatusCodes.Status400BadRequest);
+            }
+
+            return StatusCode(StatusCodes.Status200OK, response);
         }
     }
 }

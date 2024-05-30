@@ -1,4 +1,7 @@
 using IdentityDb.Data;
+using IdentityDb.Repositories;
+using IdentityDb.UnitOfWork;
+using IdentityServiceProject.IService;
 using IdentityServiceProject.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -12,10 +15,12 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-
+    options.UseLazyLoadingProxies();
 });
-builder.Services.AddScoped<AuthenticationService>();
-builder.Services.AddScoped<ToDoService>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IToDoService, ToDoService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

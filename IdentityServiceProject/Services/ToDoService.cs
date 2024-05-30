@@ -1,114 +1,87 @@
-﻿using IdentityDb.Data;
-using IdentityDb.Models;
+﻿using IdentityDb.Models;
+using IdentityDb.UnitOfWork;
 using IdentityServiceProject.Dtos;
-using Microsoft.EntityFrameworkCore;
+using IdentityServiceProject.IService;
+using Microsoft.AspNetCore.Identity;
 
 namespace IdentityServiceProject.Services
 {
-    public class ToDoService
+    public class ToDoService : IToDoService
     {
-        private readonly ApplicationContext _context;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ToDoService(ApplicationContext context)
+        public ToDoService(IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
+            _userManager = userManager;
         }
 
-        public IEnumerable<ToDoListShowDto> GetToDoList(string userName)
+        public async Task<IEnumerable<ToDoListShowDto>> GetToDoList(string userName)
         {
-            if (userName == null)
+            var user = await _userManager.FindByNameAsync(userName);
+            var toDoList = await _unitOfWork.ToDoRepository.GetAllAsync();
+
+            var list = toDoList.Where(x => x.UId == user.Id).Select(item => new ToDoListShowDto
             {
-                throw new NullReferenceException("Please insert User Name");
-            }
+                UserName = item.User.UserName ?? "",
+                CreateDate = item.CreateDate,
+                DeadlineDateTime = item.DeadlineDateTime,
+                IsDone = item.IsDone,
+                Description = item.Description,
+                Title = item.Title,
+            });
 
-            var list = _context.ToDos.Where(x => x.UserName == userName);
-            List<ToDoListShowDto> showLsit = new List<ToDoListShowDto>();
-
-            if (list.Any())
-            {
-                foreach (var item in list)
-                {
-                    showLsit.Add(new ToDoListShowDto
-                    {
-                        UserName = item.UserName,
-                        CreateDate = item.CreateDate,
-                        DeadlineDateTime = item.DeadlineDateTime,
-                        IsDone = item.IsDone,
-                        Description = item.Description,
-                        Title = item.Title,
-                    });
-                }
-            }
-
-            return showLsit;
+            return list;
         }
 
-        public ToDoListShowDto GetNote(int id)
+        public async Task<ToDoListShowDto> GetNote(ToDoRemoveDto note)
         {
-            if (id <= 0 )
+            var noteDb = await _unitOfWork.ToDoRepository.GetAsync(note.Id);
+            var user = await _userManager.FindByNameAsync(note.UserName);
+
+            if (noteDb == null || user == null || user.Id != noteDb.UId)
             {
-                throw new ArgumentException();
+                return null;
             }
 
-            var noteDb = _context.ToDos.FirstOrDefault(n => n.Id == id);
-
-            if (noteDb == null)
+            return new ToDoListShowDto
             {
-                throw new Exception("Note with that ID does not exist!!!");
-            }
-
-            var note = new ToDoListShowDto
-            {
-                UserName = noteDb.UserName,
+                UserName = noteDb.User.UserName ?? "",
                 CreateDate = noteDb.CreateDate,
                 DeadlineDateTime = noteDb.DeadlineDateTime,
                 IsDone = noteDb.IsDone,
                 Description = noteDb.Description,
                 Title = noteDb.Title,
             };
-
-            return note;
         }
 
-        public IEnumerable<ToDoListShowDto> GetNotesByTitle(string title, string userName)
+        public async Task<IEnumerable<ToDoListShowDto>> GetNotesByTitle(string title, string userName)
         {
-            if (string.IsNullOrEmpty(title))
+            var user = await _userManager.FindByNameAsync(userName);
+            var toDoList = await _unitOfWork.ToDoRepository.GetAllAsync();
+
+            var list = toDoList.Where(n => n.Title == title && n.UId == user.Id)
+                                            .Select(item => new ToDoListShowDto
             {
-                throw new ArgumentNullException();
-            }
+                UserName = item.User.UserName ?? "",
+                CreateDate = item.CreateDate,
+                DeadlineDateTime = item.DeadlineDateTime,
+                IsDone = item.IsDone,
+                Description = item.Description,
+                Title = item.Title,
+            });
 
-            var list = _context.ToDos.Where(n => n.Title == title && n.UserName == userName);
-            List<ToDoListShowDto> showLsit = new List<ToDoListShowDto>();
-
-            if (list.Any())
-            {
-                foreach (var item in list)
-                {
-                    showLsit.Add(new ToDoListShowDto
-                    {
-                        UserName = item.UserName,
-                        CreateDate = item.CreateDate,
-                        DeadlineDateTime = item.DeadlineDateTime,
-                        IsDone = item.IsDone,
-                        Description = item.Description,
-                        Title = item.Title,
-                    });
-                }
-            }
-
-            return showLsit;
+            return list;
         }
 
-        public ToDoListShowDto InsertNote(ToDoServiceInsertDto newNote)
+        public async Task<ToDoListShowDto> InsertNote(ToDoBase newNote)
         {
-            if (newNote == null)
-            {
-                throw new ArgumentNullException(nameof(newNote));
-            }
+            var user = await _userManager.FindByNameAsync(newNote.UserName);
 
             ToDoNoteModel note = new ToDoNoteModel
             {
-                UserName = newNote.UserName,
+                UId = user.Id,
                 Title = newNote.Title,
                 Description = newNote.Description,
                 DeadlineDateTime = newNote.DeadlineDateTime,
@@ -116,14 +89,14 @@ namespace IdentityServiceProject.Services
                 IsDone = false
             };
 
-            _context.ToDos.Add(note);
-            var response = _context.SaveChanges();
+            await _unitOfWork.ToDoRepository.InsertAsync(note);
+            var response = await _unitOfWork.CompleteAsync();
 
             if (response > 0)
             {
                 return new ToDoListShowDto
                 {
-                    UserName = note.UserName,
+                    UserName = note.User.UserName ?? "",
                     CreateDate = note.CreateDate,
                     DeadlineDateTime = note.DeadlineDateTime,
                     IsDone = note.IsDone,
@@ -132,44 +105,47 @@ namespace IdentityServiceProject.Services
                 };
             }
 
-            throw new Exception("Creation of new note is failed");
+            return null;
         }
 
-        public int RemoveNote(int noteId, string userName)
+        public async Task<int> RemoveNote(ToDoRemoveDto noteIdAndUserName)
         {
-            var note = _context.ToDos.FirstOrDefault(n => n.Id == noteId && n.UserName == userName);  
+            var user = await _userManager.FindByNameAsync(noteIdAndUserName.UserName);
+
+            if (user == null)
+            {
+                return -1;
+            }
+
+            var note = await _unitOfWork.ToDoRepository.GetAsync(noteIdAndUserName.Id);  
 
             if (note == null)
             {
                 return -1;
             }
 
-            _context.ToDos.Remove(note);
-            var response = _context.SaveChanges();
+            _unitOfWork.ToDoRepository.RemoveAsync(note); 
+            var response = await _unitOfWork.CompleteAsync();
 
-            if(response > 0)
+            if (response > 0)
             {
-                return noteId;
+                return noteIdAndUserName.Id;
             }
 
             return -1;
         }
 
-        public bool UpdateNote(ToDoUpdateDto updatedNote)
+        public async Task<bool> EditNote(ToDoUpdateDto updatedNote)
         {
-            if (updatedNote == null)
-            {
-                throw new ArgumentNullException(nameof(updatedNote));
-            }
+            var notedb = await _unitOfWork.ToDoRepository.GetAsync(updatedNote.Id);
+            var user = await _userManager.FindByNameAsync(updatedNote.UserName);
 
-            var notedb = _context.ToDos.FirstOrDefault(n => n.Id ==  updatedNote.Id);
-
-            if (notedb == null)
+            if (notedb == null || user == null || user.Id != notedb.UId)
             {
                 return false;
             }
 
-            _context.Entry(notedb).State = EntityState.Detached;
+            _unitOfWork.ToDoRepository.StateDetach(notedb);
             ToDoNoteModel note = new ToDoNoteModel
             {
                 Id = updatedNote.Id,
@@ -178,11 +154,11 @@ namespace IdentityServiceProject.Services
                 IsDone = updatedNote.IsDone,
                 DeadlineDateTime = updatedNote.DeadlineDateTime,
                 CreateDate = notedb.CreateDate,
-                UserName = notedb.UserName,
+                UId = notedb.UId,
             };
-            _context.ToDos.Attach(note);
-            _context.Entry(note).State = EntityState.Modified;
-            int response = _context.SaveChanges();
+            _unitOfWork.ToDoRepository.EditAsync(note);
+            _unitOfWork.ToDoRepository.StateModify(note);
+            int response = await _unitOfWork.CompleteAsync();
             return response > 0;
         }
     }

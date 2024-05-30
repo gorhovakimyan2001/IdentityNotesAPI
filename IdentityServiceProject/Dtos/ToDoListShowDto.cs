@@ -1,17 +1,11 @@
 ﻿namespace IdentityServiceProject.Dtos
 {
-    public class ToDoListShowDto
+    public class ToDoListShowDto: ToDoBase
     {
-        public string UserName { get; set; }
-
-        public string Title { get; set; }
-
-        public string Description { get; set; }
+        public override string UserName { get; set; }
 
         public bool IsDone { get; set; }
 
         public DateTime CreateDate { get; set; }
-
-        public DateTime DeadlineDateTime { get; set; }
     }
 }

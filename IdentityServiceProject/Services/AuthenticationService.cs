@@ -1,14 +1,17 @@
 ﻿using IdentityServiceProject.Dtos;
 using IdentityServiceProject.Helpers;
+using IdentityServiceProject.IService;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+
 namespace IdentityServiceProject.Services
 {
-    public class AuthenticationService
+    public class AuthenticationService : IAuthenticationService
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly IConfiguration _config;
+
         public AuthenticationService(UserManager<IdentityUser> userManager
             , SignInManager<IdentityUser> signInManager, IConfiguration config)
         {
@@ -16,6 +19,7 @@ namespace IdentityServiceProject.Services
             _signInManager = signInManager;
             _config = config;
         }
+
         public async Task<IdentityResult> Registration(UserRegisterDto newUser)
         {
             var user = new IdentityUser() 
@@ -34,7 +38,7 @@ namespace IdentityServiceProject.Services
 
             if (userDb == null)
             {
-                throw new Exception("User doesn't exist!!!");
+                return (SignInResult.Failed, string.Empty);
             }
             var result = await _signInManager.PasswordSignInAsync(userDb.UserName, user.Password, isPersistent: false, lockoutOnFailure: false);
 

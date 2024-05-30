@@ -3,11 +3,12 @@ using System.Text.Json.Serialization;
 
 namespace IdentityServiceProject.Dtos
 {
-    public class ToDoUpdateDto : ToDoBase
+    public class ToDoRemoveDto
     {
+        [JsonIgnore]
+        public string UserName { get; set; }
+
         [Required]
         public int Id { get; set; }
-
-        public bool IsDone { get; set; }
     }
 }

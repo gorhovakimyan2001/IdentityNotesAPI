@@ -1,10 +1,11 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace IdentityServiceProject.Dtos
 {
-    public class ToDoInsertDto
+    public class ToDoBase
     {
         [Required]
         public string Title { get; set; }
@@ -12,7 +13,9 @@ namespace IdentityServiceProject.Dtos
         [Required]
         public string Description { get; set; }
 
-        [AllowNull]
         public DateTime DeadlineDateTime { get; set; }
+
+        [JsonIgnore]
+        public virtual string? UserName { get; set; }
     }
 }

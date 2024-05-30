@@ -1,12 +1,15 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 
 namespace IdentityDb.Models
 {
     public class ToDoNoteModel
     {
-        public int Id { get; set; } 
+        public int Id { get; set; }
 
-        public string UserName { get; set; }
+        [ForeignKey("IdentityUser")]
+        public string UId { get; set; }
 
         public string Title { get; set; }
 
@@ -18,5 +21,7 @@ namespace IdentityDb.Models
 
         [AllowNull]
         public DateTime DeadlineDateTime { get; set; }
+
+        public virtual IdentityUser User { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace IdentityDb.Data
 {
@@ -19,6 +20,12 @@ namespace IdentityDb.Data
 
             builder.Entity<ToDoNoteModel>()
             .HasKey(t => t.Id);
+
+                builder.Entity<ToDoNoteModel>()
+            .HasOne(n => n.User)
+            .WithMany() 
+            .HasForeignKey(n => n.UId)
+            .IsRequired();
         }
     }
 }
