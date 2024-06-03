@@ -1,7 +1,7 @@
 ﻿using IdentityServiceProject.Dtos;
 using IdentityServiceProject.IService;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace IdentityProject.Controllers
 {
@@ -16,7 +16,6 @@ namespace IdentityProject.Controllers
             _authenticationService = authenticationService;
         }
 
-        [AllowAnonymous]
         [HttpPost("Registration")]
         public async Task<IActionResult> Registration(UserRegisterDto newUser)
         {
@@ -30,7 +29,6 @@ namespace IdentityProject.Controllers
             return StatusCode(StatusCodes.Status200OK, response);
         }
 
-        [AllowAnonymous]
         [HttpPost("LogIn")]
         public async Task<IActionResult> LogIn(UserLogInDto user)
         {
@@ -45,9 +43,9 @@ namespace IdentityProject.Controllers
         }
 
         [HttpPost("RefreshToken")]
-        public async Task<IActionResult> RefreshToken(string userId)
+        public async Task<IActionResult> RefreshToken([EmailAddress] string email)
         {
-            var response = await _authenticationService.RefeshToken(userId);
+            var response = await _authenticationService.RefeshToken(email);
 
             if (string.IsNullOrEmpty(response))
             {

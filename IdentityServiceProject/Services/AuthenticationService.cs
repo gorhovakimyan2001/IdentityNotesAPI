@@ -51,7 +51,7 @@ namespace IdentityServiceProject.Services
                 }
 
                 string tonkenKeyString = _config.GetSection("AppSettings").GetSection("TokenKey").Value ?? string.Empty;
-                var token = TokenHelper.GenerateToken(tonkenKeyString, userDb.UserName ?? string.Empty);
+                var token = TokenHelper.GenerateToken(tonkenKeyString, userDb.UserName ?? string.Empty, false);
                 await _userManager.SetAuthenticationTokenAsync(userDb, "Default", "login", token);
                 return (result, token);
             }
@@ -59,16 +59,16 @@ namespace IdentityServiceProject.Services
             return (result, string.Empty);
         }
 
-        public async Task<string> RefeshToken(string userId)
+        public async Task<string> RefeshToken(string email)
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                return  $"There is no user with {userId} ID";
+                return  $"There is no user with {email} email";
             }
 
             string tonkenKeyString = _config.GetSection("AppSettings").GetSection("TokenKey").Value ?? string.Empty;
-            var token = TokenHelper.GenerateToken(tonkenKeyString, user.UserName ?? string.Empty);
+            var token = TokenHelper.GenerateToken(tonkenKeyString, user.UserName ?? string.Empty, true);
             await _userManager.SetAuthenticationTokenAsync(user, "Default", "login", token);
             return token;
         }

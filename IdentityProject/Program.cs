@@ -24,11 +24,10 @@ builder.Services.AddScoped<IToDoService, ToDoService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-string tonkenKeyString = builder.Configuration.GetSection("AppSettings").GetSection("TokenKey").Value;
+string tonkenKeyString = builder.Configuration.GetSection("AppSettings").GetSection("TokenKey").Value ?? string.Empty;
 
 SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-    tonkenKeyString != null ? tonkenKeyString : "")
+    string.IsNullOrEmpty(tonkenKeyString) ? string.Empty : tonkenKeyString)
     );
 
 TokenValidationParameters tokenValidation = new TokenValidationParameters()
@@ -37,8 +36,8 @@ TokenValidationParameters tokenValidation = new TokenValidationParameters()
     ValidateIssuer = false,
     ValidateIssuerSigningKey = false,
     ValidateAudience = false,
+    ClockSkew = TimeSpan.Zero,
 };
-
 
 builder.Services.AddAuthentication(options =>
 {

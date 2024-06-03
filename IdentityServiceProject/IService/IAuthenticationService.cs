@@ -9,6 +9,6 @@ namespace IdentityServiceProject.IService
 
         public Task<(SignInResult result, string token)> LogIn(UserLogInDto user);
 
-        public Task<string> RefeshToken(string userId);
+        public Task<string> RefeshToken(string email);
     }
 }

@@ -7,7 +7,7 @@ namespace IdentityServiceProject.Helpers
 {
     public static class TokenHelper
     {
-        public static string GenerateToken(string secretKey, string userName)
+        public static string GenerateToken(string secretKey, string userName, bool IsRefresh)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(secretKey);
@@ -17,7 +17,7 @@ namespace IdentityServiceProject.Helpers
                 {
                     new Claim(ClaimTypes.Name, userName)
                 }),
-                Expires = DateTime.UtcNow.AddDays(10),
+                Expires = IsRefresh ? DateTime.UtcNow.AddDays(7) : DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);

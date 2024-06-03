@@ -1,6 +1,5 @@
-﻿using IdentityDb.Models;
-using IdentityServiceProject.Dtos;
-using Microsoft.EntityFrameworkCore;
+﻿using IdentityServiceProject.Dtos;
+
 namespace IdentityServiceProject.IService
 {
     public interface IToDoService
