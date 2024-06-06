@@ -11,6 +11,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationContext>(options =>
 {
@@ -21,6 +22,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IToDoService, ToDoService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -47,14 +49,14 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = tokenValidation;
-})
-.AddCookie(IdentityConstants.ApplicationScheme);
+});
 
 builder.Services.AddAuthorization();
-
 builder.Services.AddIdentityCore<IdentityUser>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationContext>()
-    .AddApiEndpoints();
+    .AddApiEndpoints()
+    .AddDefaultTokenProviders();
 
 var app = builder.Build();
 

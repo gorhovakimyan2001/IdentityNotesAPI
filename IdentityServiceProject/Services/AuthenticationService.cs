@@ -40,7 +40,9 @@ namespace IdentityServiceProject.Services
             {
                 return (SignInResult.Failed, string.Empty);
             }
+
             var result = await _signInManager.PasswordSignInAsync(userDb.UserName, user.Password, isPersistent: false, lockoutOnFailure: false);
+            var role = await _userManager.GetRolesAsync(userDb);
 
             if (result.Succeeded)
             {
@@ -51,7 +53,7 @@ namespace IdentityServiceProject.Services
                 }
 
                 string tonkenKeyString = _config.GetSection("AppSettings").GetSection("TokenKey").Value ?? string.Empty;
-                var token = TokenHelper.GenerateToken(tonkenKeyString, userDb.UserName ?? string.Empty, false);
+                var token = TokenHelper.GenerateToken(tonkenKeyString, userDb.UserName ?? string.Empty, false, role.First());
                 await _userManager.SetAuthenticationTokenAsync(userDb, "Default", "login", token);
                 return (result, token);
             }
@@ -67,8 +69,9 @@ namespace IdentityServiceProject.Services
                 return  $"There is no user with {email} email";
             }
 
+            var role = await _userManager.GetRolesAsync(user);
             string tonkenKeyString = _config.GetSection("AppSettings").GetSection("TokenKey").Value ?? string.Empty;
-            var token = TokenHelper.GenerateToken(tonkenKeyString, user.UserName ?? string.Empty, true);
+            var token = TokenHelper.GenerateToken(tonkenKeyString, user.UserName ?? string.Empty, true, role.First());
             await _userManager.SetAuthenticationTokenAsync(user, "Default", "login", token);
             return token;
         }

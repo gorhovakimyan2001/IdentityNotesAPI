@@ -1,6 +1,7 @@
 ﻿using IdentityDb.Models;
 using IdentityDb.UnitOfWork;
 using IdentityServiceProject.Dtos;
+using IdentityServiceProject.Helpers;
 using IdentityServiceProject.IService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -10,20 +11,25 @@ namespace IdentityServiceProject.Services
     public class ToDoService : IToDoService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserHelper _userHelper;
 
-        public ToDoService(IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager)
+        public ToDoService(IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager,
+                            IHttpContextAccessor httpContextAccessor)
         {
+            _userHelper = new UserHelper(userManager, httpContextAccessor);
             _unitOfWork = unitOfWork;
-            _userManager = userManager;
         }
 
-        public async Task<IEnumerable<ToDoListShowDto>> GetToDoList(string userName)
+        public async Task<IEnumerable<ToDoListShowDto>> GetToDoList()
         {
-            var user = await _userManager.FindByNameAsync(userName);
-            var toDoList = await _unitOfWork.ToDoRepository.GetAllAsync();
+            var userDb = await _userHelper.GetCurrentUser();
+            if (userDb == null)
+            {
+                return new List<ToDoListShowDto>();
+            }
 
-            var list = toDoList.Where(x => x.UId == user.Id).Select(item => new ToDoListShowDto
+            var toDoList = await _unitOfWork.ToDoRepository.GetAllAsync();
+            var list = toDoList.Where(x => x.UId == userDb.Id).Select(item => new ToDoListShowDto
             {
                 UserName = item.User.UserName ?? string.Empty,
                 CreateDate = item.CreateDate,
@@ -36,10 +42,10 @@ namespace IdentityServiceProject.Services
             return list;
         }
 
-        public async Task<ToDoListShowDto> GetNote(ToDoRemoveDto note)
+        public async Task<ToDoListShowDto> GetNote(int id)
         {
-            var noteDb = await _unitOfWork.ToDoRepository.GetAsync(note.Id);
-            var user = await _userManager.FindByNameAsync(note.UserName ?? string.Empty );
+            var user = await _userHelper.GetCurrentUser();
+            var noteDb = await _unitOfWork.ToDoRepository.GetAsync(id);
 
             if (noteDb == null || user == null || user.Id != noteDb.UId)
             {
@@ -57,9 +63,9 @@ namespace IdentityServiceProject.Services
             };
         }
 
-        public async Task<IEnumerable<ToDoListShowDto>> GetNotesByTitle(string title, string userName)
+        public async Task<IEnumerable<ToDoListShowDto>> GetNotesByTitle(string title)
         {
-            var user = await _userManager.FindByNameAsync(userName);
+            var user = await _userHelper.GetCurrentUser();
             var toDoList = await _unitOfWork.ToDoRepository.GetAllAsync();
 
             var list = toDoList.Where(n => n.Title == title && n.UId == user.Id)
@@ -78,7 +84,7 @@ namespace IdentityServiceProject.Services
 
         public async Task<ToDoListShowDto> InsertNote(ToDoBase newNote)
         {
-            var user = await _userManager.FindByNameAsync(newNote.UserName ?? string.Empty);
+            var user = await _userHelper.GetCurrentUser();
 
             ToDoNoteModel note = new ToDoNoteModel
             {
@@ -109,16 +115,16 @@ namespace IdentityServiceProject.Services
             return null;
         }
 
-        public async Task<int> RemoveNote(ToDoRemoveDto noteIdAndUserName)
+        public async Task<int> RemoveNote(int id)
         {
-            var user = await _userManager.FindByNameAsync(noteIdAndUserName.UserName ?? string.Empty);
+            var user = await _userHelper.GetCurrentUser();
 
             if (user == null)
             {
                 return -1;
             }
 
-            var note = await _unitOfWork.ToDoRepository.GetAsync(noteIdAndUserName.Id);  
+            var note = await _unitOfWork.ToDoRepository.GetAsync(id);  
 
             if (note == null)
             {
@@ -130,7 +136,7 @@ namespace IdentityServiceProject.Services
 
             if (response > 0)
             {
-                return noteIdAndUserName.Id;
+                return id;
             }
 
             return -1;
@@ -139,7 +145,7 @@ namespace IdentityServiceProject.Services
         public async Task<bool> EditNote(ToDoUpdateDto updatedNote)
         {
             var notedb = await _unitOfWork.ToDoRepository.GetAsync(updatedNote.Id);
-            var user = await _userManager.FindByNameAsync(updatedNote.UserName ?? string.Empty);
+            var user = await _userHelper.GetCurrentUser();
 
             if (notedb == null || user == null || user.Id != notedb.UId)
             {
