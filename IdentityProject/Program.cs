@@ -49,7 +49,8 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = tokenValidation;
-});
+})
+.AddCookie(IdentityConstants.ApplicationScheme);
 
 builder.Services.AddAuthorization();
 builder.Services.AddIdentityCore<IdentityUser>()
@@ -59,6 +60,30 @@ builder.Services.AddIdentityCore<IdentityUser>()
     .AddDefaultTokenProviders();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    if (!await roleManager.RoleExistsAsync("Admin"))
+    {
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
+    }
+
+    var defaultUser = await userManager.FindByEmailAsync("admin@example.com");
+    if (defaultUser == null)
+    {
+        defaultUser = new IdentityUser
+        {
+            UserName = "admin",
+            Email = "admin@example.com"
+        };
+        var q = await userManager.CreateAsync(defaultUser, "Admin1234$$");
+
+        await userManager.AddToRoleAsync(defaultUser, "Admin");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

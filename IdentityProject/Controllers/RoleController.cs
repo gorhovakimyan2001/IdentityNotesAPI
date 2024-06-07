@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace IdentityProject.Controllers
 {
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("[controller]")]
     public class RoleController : ControllerBase

@@ -29,6 +29,12 @@ namespace IdentityServiceProject.Services
             };
 
             var responce = await _userManager.CreateAsync(user, newUser.Password);
+            if (responce.Succeeded)
+            {
+                var userDb = await _userManager.FindByEmailAsync(newUser.Email);
+                await _userManager.AddToRolesAsync(userDb, new  List<string>() { "User" });
+            }
+            
             return responce;
         }
 
